@@ -1,0 +1,20 @@
+# dataset
+data/
+dataset/
+train/
+test/
+
+# training outputs
+training_models/
+tensorboard/
+
+# python
+__pycache__/
+*.pyc
+
+# notebook
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
