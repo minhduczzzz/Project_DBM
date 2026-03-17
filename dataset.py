@@ -12,15 +12,11 @@ class DogBreedTrainValDataset(Dataset):
 
         if class_to_idx is None:
             classes = sorted(self.df["breed"].unique())
-            self.class_to_idx = {
-                class_name: idx for idx, class_name in enumerate(classes)
-            }
+            self.class_to_idx = {class_name: idx for idx, class_name in enumerate(classes)}
         else:
             self.class_to_idx = class_to_idx
 
-        self.idx_to_class = {
-            idx: class_name for class_name, idx in self.class_to_idx.items()
-        }
+        self.idx_to_class = {idx: class_name for class_name, idx in self.class_to_idx.items()}
 
     def __len__(self):
         return len(self.df)
