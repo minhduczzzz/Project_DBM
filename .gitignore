@@ -1,20 +1,84 @@
-# dataset
-data/
-dataset/
-train/
-test/
+# Environment variables
+.env
+.env.local
+.env.*.local
 
-# training outputs
-training_models/
-tensorboard/
-
-# python
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# notebook
-.ipynb_checkpoints/
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
 
-# OS
+# PyCharm
+.idea/
+*.swp
+*.swo
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Database
+*.db
+chat_history.db
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/cache/
+
+# TensorBoard
+tensorboard/
+runs/
+lightning_logs/
+
+# macOS
 .DS_Store
+
+# Windows
 Thumbs.db
+*.lnk
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Misc
+*.tmp
+*.bak
+.cache/
+dist/
+build/
+
+# model part
+best_resnet.pth
+train/
