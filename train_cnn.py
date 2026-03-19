@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, classification_report, confusion_matrix
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
@@ -27,15 +27,17 @@ if __name__ == "__main__":
     labels_path = "labels.csv"
     train_dir = "train"
 
+    # DATA MINING MAPPING: Handling Class Imbalance and Noise via Data Augmentation
     train_transform = Compose([
-    RandomResizedCrop(224, scale=(0.8, 1.0)),  # Resize
+    RandomResizedCrop(224, scale=(0.8, 1.0)),  # Feature Selection (Focusing on Region of Interest)
     RandomHorizontalFlip(),
-    RandomRotation(15),
+    RandomRotation(15),                        # Introducing Noise to prevent Minority Class Overfitting
     ColorJitter(0.3, 0.3, 0.3),
     ToTensor(),
+    # DATA MINING MAPPING: Data Standardization / Feature Scaling
     Normalize([0.485, 0.456, 0.406],
               [0.229, 0.224, 0.225]),
-    RandomErasing(p=0.25)
+    RandomErasing(p=0.25)                      # Outlier robust training simulation
     ])
 
     val_transform = Compose([
@@ -47,6 +49,22 @@ if __name__ == "__main__":
     ])
 
     df = pd.read_csv(labels_path)
+
+    print("\n[+] DATA MINING PHASE: DATA CLEANING & REDUCTION")
+    # 1. Feature Engineering: Dropping exact duplicates
+    initial_len = len(df)
+    df = df.drop_duplicates(subset=['id']).reset_index(drop=True)
+    dup_removed = initial_len - len(df)
+    
+    # 2. Handling Missing/Corrupted Physical Data
+    # Filtering out textual records that have no valid physical image match
+    valid_mask = df['id'].apply(lambda x: os.path.exists(os.path.join(train_dir, f"{x}.jpg")))
+    df = df[valid_mask].reset_index(drop=True)
+    missing_removed = (initial_len - dup_removed) - len(df)
+    
+    print(f"-> Removed {dup_removed} duplicate records.")
+    print(f"-> Removed {missing_removed} missing image links.")
+    print(f"-> Final Cleaned Dataset Size: {len(df)} records ready for modeling.\n")
 
     train_df, val_df = train_test_split(
         df,
@@ -148,7 +166,12 @@ if __name__ == "__main__":
                 all_predictions.extend(predictions.cpu().numpy().tolist())
 
         accuracy = accuracy_score(all_labels, all_predictions)
+        precision, recall, f1, _ = precision_recall_fscore_support(all_labels, all_predictions, average='weighted', zero_division=0)
+        
         writer.add_scalar("Validation/Accuracy", accuracy, epoch)
+        writer.add_scalar("Validation/Precision", precision, epoch)
+        writer.add_scalar("Validation/Recall", recall, epoch)
+        writer.add_scalar("Validation/F1-Score", f1, epoch)
 
         scheduler.step(accuracy)
 
@@ -167,6 +190,16 @@ if __name__ == "__main__":
             no_improve_epochs = 0
             checkpoint["best_acc"] = best_acc
             torch.save(checkpoint, "training_models/best_resnet.pth")
+            
+            # Print detailed Data Mining metrics for the new best model
+            print("\n" + "="*60)
+            print(f"NEW BEST MODEL FOUND (Epoch {epoch+1}) - METRICS REPORT")
+            print("="*60)
+            print(classification_report(all_labels, all_predictions, zero_division=0))
+            print("\nConfusion Matrix (First 10x10):")
+            cm = confusion_matrix(all_labels, all_predictions)
+            print(cm[:10, :10], "...")
+            print("="*60 + "\n")
         else:
             no_improve_epochs += 1
 
