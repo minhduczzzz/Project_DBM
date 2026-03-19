@@ -1,4 +1,4 @@
-# 🐕 Dog Breed Classifier - Project AIL Team 3
+# 🐕 Dog Breed Classifier - Project AIL Team 5
 
 AI-powered dog breed recognition using ResNet18 deep learning model with intelligent chatbot.
 
