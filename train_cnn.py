@@ -23,6 +23,7 @@ if __name__ == "__main__":
     start_epoch = 0
     best_acc = 0
     patience = 10
+    no_improve_epochs = 0
 
     labels_path = "labels.csv"
     train_dir = "train"
@@ -121,6 +122,8 @@ if __name__ == "__main__":
         optimizer.load_state_dict(ckpt["optimizer"])
         start_epoch = ckpt["epoch"]
         best_acc = ckpt.get("best_acc", 0)
+        no_improve_epochs = ckpt.get("no_improve_epochs", 0)
+        print(f"-> Resuming from Epoch {start_epoch+1}. Best Accuracy so far: {best_acc:.4f}")
 
     num_iters = len(train_dataloader)
 
@@ -180,6 +183,7 @@ if __name__ == "__main__":
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "best_acc": best_acc,
+            "no_improve_epochs": no_improve_epochs,
             "class_to_idx": train_dataset.class_to_idx
         }
 
