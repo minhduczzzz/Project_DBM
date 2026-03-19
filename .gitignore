@@ -81,4 +81,3 @@ build/
 
 # model part
 best_resnet.pth
-train/
