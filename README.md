@@ -1,4 +1,4 @@
-# 🐕 Dog Breed Classifier - Project AIL Team 5
+# 🐕 Dog Breed Classifier - Project DBM302m Team 5
 
 AI-powered dog breed recognition using ResNet18 deep learning model with intelligent chatbot.
 
@@ -241,7 +241,7 @@ pip install -r requirements.txt --upgrade
 
 ## 👥 Team
 
-Project AIL - Team 5 (FPT University)
+Project DBM302m - Team 5 (FPT University)
 
 ## 📄 License
 
@@ -343,7 +343,7 @@ pip install -r requirements.txt --upgrade
 
 ## 👥 Team
 
-Project AIL - Team 5 (FPT University)
+Project DBM302m - Team 5 (FPT University)
 
 ## 📄 License
 
