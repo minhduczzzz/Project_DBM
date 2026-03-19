@@ -241,7 +241,7 @@ pip install -r requirements.txt --upgrade
 
 ## 👥 Team
 
-Project AIL - Team 3 (FPT University)
+Project AIL - Team 5 (FPT University)
 
 ## 📄 License
 
