@@ -1,34 +1,21 @@
-"""
-Transform Factory - Tạo transforms cho các models khác nhau
-Giúp tái sử dụng code và đảm bảo consistency
-"""
-
-from torchvision.transforms import Compose, Resize, ToTensor, Normalize
+from torchvision.transforms import Compose, Resize, RandomResizedCrop, ToTensor, Normalize
 from torchvision.transforms import RandomHorizontalFlip, RandomRotation, ColorJitter
 
-
 def get_train_transform(input_size=224, augmentation=True):
-    """
-    Tạo transform cho training
-    
-    Args:
-        input_size: Kích thước input của model (224 cho VGG/ResNet, 240 cho EfficientNet)
-        augmentation: Có áp dụng augmentation không
-    
-    Returns:
-        Compose transform
-    """
-    transforms = [Resize((input_size, input_size))]
+    """Tạo transform cho training với Data Augmentation tối ưu"""
+    transforms = []
     
     if augmentation:
+        # Thay vì Resize cứng nhắc, dùng RandomResizedCrop để model học linh hoạt hơn
         transforms.extend([
+            RandomResizedCrop(input_size, scale=(0.8, 1.0)),
             RandomHorizontalFlip(p=0.5),
-            RandomRotation(degrees=20),  # Tăng từ 15 → 20
-            ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),  # Tăng cường
-            # Thêm RandomAffine để tăng diversity
-            # RandomResizedCrop để model học robust hơn
+            RandomRotation(degrees=15),
+            ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         ])
-    
+    else:
+        transforms.append(Resize((input_size, input_size)))
+        
     transforms.extend([
         ToTensor(),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -36,51 +23,11 @@ def get_train_transform(input_size=224, augmentation=True):
     
     return Compose(transforms)
 
-
 def get_val_transform(input_size=224):
-    """
-    Tạo transform cho validation/test
-    
-    Args:
-        input_size: Kích thước input của model
-    
-    Returns:
-        Compose transform
-    """
+    """Tạo transform chuẩn cho validation/test"""
     return Compose([
-        Resize((input_size, input_size)),
+        Resize((256, 256)), # Resize to larger first
+        Resize((input_size, input_size)), # Then exact size (standard practice)
         ToTensor(),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-
-
-# Predefined transforms cho các models phổ biến
-VGG_TRAIN_TRANSFORM = get_train_transform(input_size=224, augmentation=True)
-VGG_VAL_TRANSFORM = get_val_transform(input_size=224)
-
-RESNET_TRAIN_TRANSFORM = get_train_transform(input_size=224, augmentation=True)
-RESNET_VAL_TRANSFORM = get_val_transform(input_size=224)
-
-EFFICIENTNET_TRAIN_TRANSFORM = get_train_transform(input_size=240, augmentation=True)
-EFFICIENTNET_VAL_TRANSFORM = get_val_transform(input_size=240)
-
-ALEXNET_TRAIN_TRANSFORM = get_train_transform(input_size=227, augmentation=True)
-ALEXNET_VAL_TRANSFORM = get_val_transform(input_size=227)
-
-
-# Usage examples:
-"""
-# Cách 1: Dùng predefined
-from transforms import VGG_TRAIN_TRANSFORM, VGG_VAL_TRANSFORM
-train_dataset = DogBreedTrainValDataset(..., transform=VGG_TRAIN_TRANSFORM)
-
-# Cách 2: Tạo custom
-from transforms import get_train_transform
-custom_transform = get_train_transform(input_size=256, augmentation=True)
-train_dataset = DogBreedTrainValDataset(..., transform=custom_transform)
-
-# Cách 3: Không augmentation
-from transforms import get_train_transform
-no_aug_transform = get_train_transform(input_size=224, augmentation=False)
-train_dataset = DogBreedTrainValDataset(..., transform=no_aug_transform)
-"""

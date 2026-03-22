@@ -3,7 +3,6 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
 
-
 class DogBreedTrainValDataset(Dataset):
     def __init__(self, image_dir, dataframe, transform=None, class_to_idx=None):
         self.image_dir = image_dir
@@ -26,7 +25,7 @@ class DogBreedTrainValDataset(Dataset):
         image_id = row["id"]
         breed = row["breed"]
 
-        image_path = os.path.join(self.image_dir, image_id + ".jpg")
+        image_path = os.path.join(self.image_dir, f"{image_id}.jpg")
         image = Image.open(image_path).convert("RGB")
         label = self.class_to_idx[breed]
 
@@ -34,7 +33,6 @@ class DogBreedTrainValDataset(Dataset):
             image = self.transform(image)
 
         return image, label
-
 
 class DogBreedTestDataset(Dataset):
     def __init__(self, image_dir, transform=None):
