@@ -23,8 +23,10 @@ def get_train_transform(input_size=224, augmentation=True):
     if augmentation:
         transforms.extend([
             RandomHorizontalFlip(p=0.5),
-            RandomRotation(degrees=15),
-            ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
+            RandomRotation(degrees=20),  # Tăng từ 15 → 20
+            ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),  # Tăng cường
+            # Thêm RandomAffine để tăng diversity
+            # RandomResizedCrop để model học robust hơn
         ])
     
     transforms.extend([

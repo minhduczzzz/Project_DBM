@@ -130,10 +130,11 @@ if __name__ == "__main__":
     print_section("STEP 4: FEATURE EXTRACTION (VGG16)")
     
     num_classes = len(train_dataset.class_to_idx)
-    model = DogBreedVGG16(num_classes=num_classes, pretrained=True).to(device)
+    model = DogBreedVGG16(num_classes=num_classes, pretrained=True, dropout=0.5).to(device)
     
     print(f"✓ Model: VGG16")
     print(f"✓ Pretrained: ImageNet weights")
+    print(f"✓ Dropout: 0.5 (chống overfitting)")
     print(f"✓ Number of classes: {num_classes}")
     print(f"✓ Total parameters: {sum(p.numel() for p in model.parameters()):,}")
     print(f"✓ Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
@@ -146,14 +147,19 @@ if __name__ == "__main__":
     num_epochs = 30
     batch_size = 16
     learning_rate = 1e-4
+    weight_decay = 1e-4  # L2 regularization
     start_epoch = 0
     best_acc = 0
+    patience = 7  # Early stopping patience
+    patience_counter = 0
     
     print(f"✓ Epochs: {num_epochs}")
     print(f"✓ Batch size: {batch_size}")
     print(f"✓ Learning rate: {learning_rate}")
+    print(f"✓ Weight decay: {weight_decay} (L2 regularization)")
     print(f"✓ Optimizer: Adam")
     print(f"✓ Loss function: CrossEntropyLoss")
+    print(f"✓ Early stopping patience: {patience} epochs")
     
     train_dataloader = DataLoader(
         train_dataset,
@@ -184,8 +190,13 @@ if __name__ == "__main__":
     
     writer = SummaryWriter("tensorboard_vgg")
     
-    optimizer = Adam(model.parameters(), lr=learning_rate)
+    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     criterion = nn.CrossEntropyLoss()
+    
+    # Learning Rate Scheduler - giảm LR khi val acc không cải thiện
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='max', factor=0.5, patience=3, verbose=True
+    )
     
     # Load checkpoint if exists
     if os.path.isfile("training_models/last_vgg.pth"):
@@ -255,6 +266,10 @@ if __name__ == "__main__":
         writer.add_scalar("Validation/Accuracy", val_accuracy, epoch)
         writer.add_scalar("Validation/F1", f1, epoch)
         writer.add_scalar("Train/AvgLoss", avg_train_loss, epoch)
+        writer.add_scalar("Train/LearningRate", optimizer.param_groups[0]['lr'], epoch)
+        
+        # Update learning rate scheduler
+        scheduler.step(val_accuracy)
         
         # Save history
         training_history.append({
@@ -263,7 +278,8 @@ if __name__ == "__main__":
             "val_accuracy": val_accuracy,
             "val_precision": precision,
             "val_recall": recall,
-            "val_f1": f1
+            "val_f1": f1,
+            "learning_rate": optimizer.param_groups[0]['lr']
         })
         
         # Save checkpoint
@@ -282,8 +298,16 @@ if __name__ == "__main__":
             checkpoint["best_acc"] = best_acc
             torch.save(checkpoint, "training_models/best_vgg.pth")
             print(f"✓ Epoch {epoch+1}/{num_epochs} - Val Acc: {val_accuracy:.4f} ⭐ NEW BEST!")
+            patience_counter = 0  # Reset patience
         else:
             print(f"  Epoch {epoch+1}/{num_epochs} - Val Acc: {val_accuracy:.4f}")
+            patience_counter += 1
+            
+            # Early stopping
+            if patience_counter >= patience:
+                print(f"\n⚠️ Early stopping triggered! No improvement for {patience} epochs.")
+                print(f"Best validation accuracy: {best_acc:.4f}")
+                break
     
     writer.close()
     
