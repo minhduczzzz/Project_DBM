@@ -1,7 +1,5 @@
 # Project_DBM - Dog Breed Classification
 
-# Project_DBM - Dog Breed Classification
-
 ## Pipeline Overview
 
 ```
