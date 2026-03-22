@@ -75,14 +75,14 @@ def generate_slide_report():
     class_metrics.sort(key=lambda x: x['f1'], reverse=True)
 
     # In 3 con tốt nhất
-    for m in class_metrics[:3]:
+    for m in class_metrics[:5]:
         print(f"{m['name']:>25} {m['p']:10.2f} {m['r']:10.2f} {m['f1']:10.2f} {m['s']:10d}")
 
     # Dòng chấm chấm ẩn đi phần giữa
     print(f"\n{'... (ẩn 114 giống chó còn lại) ...':>45}\n")
 
     # In 3 con kém nhất
-    for m in class_metrics[-3:]:
+    for m in class_metrics[-5:]:
         print(f"{m['name']:>25} {m['p']:10.2f} {m['r']:10.2f} {m['f1']:10.2f} {m['s']:10d}")
 
     print("\n")
