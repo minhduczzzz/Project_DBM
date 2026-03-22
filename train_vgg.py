@@ -130,11 +130,11 @@ if __name__ == "__main__":
     print_section("STEP 4: FEATURE EXTRACTION (VGG16)")
     
     num_classes = len(train_dataset.class_to_idx)
-    model = DogBreedVGG16(num_classes=num_classes, pretrained=True, dropout=0.5).to(device)
+    model = DogBreedVGG16(num_classes=num_classes, pretrained=True, dropout=0.3).to(device)  # Giảm dropout
     
     print(f"✓ Model: VGG16")
     print(f"✓ Pretrained: ImageNet weights")
-    print(f"✓ Dropout: 0.5 (chống overfitting)")
+    print(f"✓ Dropout: 0.3 (giảm từ 0.5 để model học được)")
     print(f"✓ Number of classes: {num_classes}")
     print(f"✓ Total parameters: {sum(p.numel() for p in model.parameters()):,}")
     print(f"✓ Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
@@ -146,8 +146,8 @@ if __name__ == "__main__":
     
     num_epochs = 30
     batch_size = 16
-    learning_rate = 1e-4
-    weight_decay = 1e-4  # L2 regularization
+    learning_rate = 2e-4  # Tăng từ 1e-4 → 2e-4
+    weight_decay = 5e-5  # Giảm từ 1e-4 → 5e-5
     start_epoch = 0
     best_acc = 0
     patience = 7  # Early stopping patience
@@ -155,8 +155,8 @@ if __name__ == "__main__":
     
     print(f"✓ Epochs: {num_epochs}")
     print(f"✓ Batch size: {batch_size}")
-    print(f"✓ Learning rate: {learning_rate}")
-    print(f"✓ Weight decay: {weight_decay} (L2 regularization)")
+    print(f"✓ Learning rate: {learning_rate} (tăng để học nhanh hơn)")
+    print(f"✓ Weight decay: {weight_decay} (giảm để không quá strict)")
     print(f"✓ Optimizer: Adam")
     print(f"✓ Loss function: CrossEntropyLoss")
     print(f"✓ Early stopping patience: {patience} epochs")
