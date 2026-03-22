@@ -195,8 +195,9 @@ if __name__ == "__main__":
     
     # Learning Rate Scheduler - giảm LR khi val acc không cải thiện
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=3, verbose=True
+        optimizer, mode='max', factor=0.5, patience=3
     )
+    print(f"✓ LR Scheduler: ReduceLROnPlateau (factor=0.5, patience=3)")
     
     # Load checkpoint if exists
     if os.path.isfile("training_models/last_vgg.pth"):
@@ -269,7 +270,12 @@ if __name__ == "__main__":
         writer.add_scalar("Train/LearningRate", optimizer.param_groups[0]['lr'], epoch)
         
         # Update learning rate scheduler
+        old_lr = optimizer.param_groups[0]['lr']
         scheduler.step(val_accuracy)
+        new_lr = optimizer.param_groups[0]['lr']
+        
+        if new_lr != old_lr:
+            print(f"  → Learning rate reduced: {old_lr:.6f} → {new_lr:.6f}")
         
         # Save history
         training_history.append({
