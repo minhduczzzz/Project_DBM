@@ -1,31 +1,25 @@
 {
-    "dataset_overview": {
+    "timestamp": "2026-03-24 10:25:12",
+    "basic_stats": {
         "total_samples": 10222,
         "num_classes": 120,
-        "samples_per_class": {
-            "min": 66,
-            "max": 126,
-            "mean": 85.18333333333334,
-            "median": 82.0,
-            "std": 13.298122274306587
-        }
+        "samples_per_class_mean": 85.18333333333334,
+        "samples_per_class_median": 82.0,
+        "imbalance_ratio": 1.9090909090909092
     },
-    "class_imbalance": {
-        "imbalance_ratio": 1.9090909090909092,
-        "underrepresented": 25,
-        "well_represented": 65,
-        "overrepresented": 30
+    "image_properties": {
+        "width_mean": 443.002,
+        "height_mean": 399.13,
+        "aspect_ratio_mean": 1.1515991540035595,
+        "file_size_mean_kb": 37.2765234375
     },
     "data_quality": {
-        "missing": 0,
-        "corrupted": 0,
-        "valid": 10222
+        "missing_images": 0,
+        "corrupted_images": 0
     },
     "insights": [
-        "\u2139\ufe0f Large number of classes (120)"
-    ],
-    "recommendations": [
-        "Consider using deeper models or ensemble methods",
-        "Use label smoothing to prevent overfitting"
+        "\ud83d\udcd0 High aspect ratio variance (std: 0.31)",
+        "   \u2192 Use RandomResizedCrop for augmentation",
+        "\u2705 No data quality issues detected"
     ]
 }

@@ -1,0 +1,79 @@
+Data Mining started at: 2026-03-24 10:23:55
+Log file: data_mining_results/data_mining_log_20260324_102355.txt
+
+
+================================================================================
+  DATA MINING & EXPLORATORY DATA ANALYSIS
+================================================================================
+
+================================================================================
+  1. BASIC DATASET STATISTICS
+================================================================================
+Total samples: 10222
+Number of breeds (classes): 120
+Columns: ['id', 'breed']
+
+================================================================================
+  2. CLASS DISTRIBUTION ANALYSIS
+================================================================================
+
+Most common breed: scottish_deerhound (126 samples)
+Least common breed: briard (66 samples)
+Average samples per breed: 85.18
+Median samples per breed: 82.00
+Imbalance ratio (max/min): 1.91
+
+✓ Saved breed distribution to data_mining_results/breed_distribution.csv
+✓ Saved class distribution plot to data_mining_results/class_distribution.png
+
+================================================================================
+  3. IMAGE PROPERTIES ANALYSIS
+================================================================================
+Analyzing image properties (sampling 500 images)...
+
+Image Dimensions:
+  Width  - Min: 112, Max: 2048, Mean: 443.00
+  Height - Min: 120, Max: 1879, Mean: 399.13
+
+Aspect Ratios:
+  Min: 0.42, Max: 2.00, Mean: 1.15
+
+File Sizes (KB):
+  Min: 4.05, Max: 653.43, Mean: 37.28
+
+✓ Saved image properties plot to data_mining_results/image_properties.png
+✓ Saved dimensions scatter plot to data_mining_results/dimensions_scatter.png
+
+================================================================================
+  4. DATA QUALITY CHECK
+================================================================================
+Checking for missing or corrupted images...
+
+Missing images: 0
+Corrupted images: 0
+
+================================================================================
+  5. INSIGHTS & RECOMMENDATIONS
+================================================================================
+📐 High aspect ratio variance (std: 0.31)
+   → Use RandomResizedCrop for augmentation
+✅ No data quality issues detected
+
+================================================================================
+  6. SAVING MINING REPORT
+================================================================================
+✓ Saved complete report to data_mining_results/mining_report.json
+
+================================================================================
+  DATA MINING COMPLETED
+================================================================================
+
+Generated files:
+  - data_mining_results/mining_report.json
+  - data_mining_results/breed_distribution.csv
+  - data_mining_results/class_distribution.png
+  - data_mining_results/image_properties.png
+  - data_mining_results/dimensions_scatter.png
+
+Data Mining completed at: 2026-03-24 10:25:12
+Log saved to: data_mining_results/data_mining_log_20260324_102355.txt
