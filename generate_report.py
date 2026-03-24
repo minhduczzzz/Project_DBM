@@ -1,5 +1,7 @@
+import sys
 import torch
 import pandas as pd
+from datetime import datetime
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from sklearn.metrics import classification_report
@@ -8,6 +10,24 @@ from sklearn.model_selection import train_test_split
 from dataset import DogBreedTrainValDataset
 from model_vgg import DogBreedVGG16
 from transforms import get_val_transform
+
+class Logger:
+    """Logger để ghi output ra cả console và file"""
+    def __init__(self, filepath):
+        self.terminal = sys.stdout
+        self.log = open(filepath, 'w', encoding='utf-8')
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        self.log.flush()
+    
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+    
+    def close(self):
+        self.log.close()
 
 def generate_slide_report():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -100,4 +120,19 @@ def generate_slide_report():
     print("\n" + "="*70)
 
 if __name__ == "__main__":
+    # Setup logger
+    log_file = f"training_models/classification_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    logger = Logger(log_file)
+    sys.stdout = logger
+    
+    print(f"Report generation started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Log file: {log_file}\n")
+    
     generate_slide_report()
+    
+    print(f"\nReport completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Report saved to: {log_file}")
+    
+    # Đóng logger
+    sys.stdout = logger.terminal
+    logger.close()

@@ -57,15 +57,24 @@ Project_DBM/
 ├── data_mining_analysis.py # Data Mining & EDA
 ├── dataset.py              # PyTorch Dataset classes (load ảnh, apply transforms)
 ├── transforms.py           # Transform factory (preprocessing + augmentation)
-├── model.py                # ResNet18 model
 ├── model_vgg.py            # VGG16 model
-├── train_cnn.py            # Train ResNet18
-├── train_vgg.py            # Train VGG16 (with detailed pipeline output)
-├── compare_models.py       # Compare all models
+├── train_vgg.py            # Train VGG16 Phase 1 (freeze features)
+├── train_vgg_phase2.py     # Train VGG16 Phase 2 (unfreeze block 5)
+├── generate_report.py      # Generate classification report for slides
 ├── labels.csv              # Dataset labels
 ├── train/                  # Training images
-├── training_models/        # Saved models and metrics
-└── data_mining_results/    # EDA results and visualizations
+├── test/                   # Test images
+├── training_models/        # Saved models, metrics, and training logs
+│   ├── best_vgg.pth
+│   ├── vgg_test_metrics.json
+│   ├── train_vgg_log_*.txt          # Training logs (auto-generated)
+│   ├── train_vgg_phase2_log_*.txt   # Phase 2 logs (auto-generated)
+│   └── classification_report_*.txt  # Classification reports (auto-generated)
+├── data_mining_results/    # EDA results and visualizations
+│   ├── mining_report.json
+│   ├── data_mining_log_*.txt        # Data mining logs (auto-generated)
+│   └── *.png                        # Visualization charts
+└── tensorboard_vgg/        # TensorBoard logs
 ```
 
 ## Kiến trúc Preprocessing
@@ -99,107 +108,60 @@ dataloader = DataLoader(dataset, batch_size=16)
 
 ## Quick Start
 
-### Workflow: Local + Colab (Recommended)
-
-#### Trên Máy Local (1 lần):
-```bash
-# 1. Data Mining & Analysis
-python data_mining_analysis.py
-
-# 2. Review insights
-cat data_mining_results/mining_report.json
-
-# 3. Push to Git
-git add .
-git commit -m "Add data mining results"
-git push origin vinhkhoa
-```
-
-#### Trên Colab (Train với GPU):
-1. Upload `colab_train_only.ipynb` lên Colab
-2. Bật GPU: Runtime > Change runtime type > GPU (T4)
-3. Chạy từng cell:
-   - Clone repo
-   - Upload dataset
-   - `!python train_vgg.py` ← CHỈ CẦN LỆNH NÀY!
-   - Download results
-
-**Xem chi tiết**: [LOCAL_WORKFLOW.md](LOCAL_WORKFLOW.md)
-
----
-
-### Alternative: All on Local (Nếu có GPU)
-
-```bash
-# 1. Data Mining
-python data_mining_analysis.py
-
-# 2. Train
-python train_vgg.py
-
-# 3. Compare
-python compare_models.py
-```
-
-## Data Mining & EDA (Phục vụ CẢ DỰ ÁN)
-
-Run exploratory data analysis first:
+### Step 1: Data Mining & Analysis (Optional but Recommended)
 
 ```bash
 python data_mining_analysis.py
 ```
 
-### Output:
-- **Dataset Statistics**: Total samples, number of classes, distribution
-- **Class Imbalance Analysis**: Imbalance ratio, underrepresented classes
-- **Image Properties**: Dimensions, aspect ratios, file sizes
-- **Data Quality**: Missing/corrupted images
-- **Visualizations**: Distribution charts, scatter plots
-- **Insights & Recommendations**: Actionable insights for ALL models
+Output:
+- Console output + saved to `data_mining_results/data_mining_log_YYYYMMDD_HHMMSS.txt`
+- Analysis report: `data_mining_results/mining_report.json`
+- Visualizations: `data_mining_results/*.png`
+- Distribution data: `data_mining_results/breed_distribution.csv`
 
-### Generated Files:
-- `data_mining_results/mining_report.json` - Complete analysis report
-- `data_mining_results/breed_distribution.csv` - Class distribution
-- `data_mining_results/class_distribution.png` - Class distribution charts
-- `data_mining_results/image_properties.png` - Image property analysis
-- `data_mining_results/dimensions_scatter.png` - Dimension scatter plot
+This step helps you understand the dataset and make informed decisions about augmentation and model selection.
 
-**Quan trọng**: Kết quả Data Mining dùng chung cho TẤT CẢ models (VGG, ResNet, AlexNet, EfficientNet). Chỉ cần chạy 1 lần!
+### Step 2: Training VGG16 (2 Phases)
 
-## Training VGG16
-
+#### Phase 1: Train Classifier Only (Freeze CNN Features)
 ```bash
 python train_vgg.py
 ```
 
-### Output Structure:
-- **STEP 1**: Dataset loading statistics
-- **STEP 2**: Preprocessing and augmentation details
-- **STEP 3**: Train/Val/Test split information
-- **STEP 4**: Model architecture and parameters
-- **STEP 5**: Training progress with loss and accuracy
-- **STEP 6**: Final evaluation metrics (Accuracy, Precision, Recall, F1)
+Output:
+- Console output + saved to `training_models/train_vgg_log_YYYYMMDD_HHMMSS.txt`
+- Model: `training_models/best_vgg.pth`
+- Metrics: `training_models/vgg_test_metrics.json`
+- TensorBoard: `tensorboard_vgg/`
 
-### Generated Files:
-- `training_models/best_vgg.pth` - Best model checkpoint
-- `training_models/vgg_test_metrics.json` - Test metrics
-- `training_models/vgg_training_history.json` - Training history
-- `tensorboard_vgg/` - TensorBoard logs
-
-## Model Comparison
-
-After training multiple models, compare them:
-
+#### Phase 2: Fine-tune Block 5 (Optional - for better accuracy)
 ```bash
-python compare_models.py
+python train_vgg_phase2.py
 ```
 
-### Output:
-- Performance comparison table
-- Best model identification
-- `training_models/model_comparison.csv` - Comparison table
-- `training_models/model_comparison.png` - Visualization charts
-- `training_models/metrics_comparison.png` - Metrics comparison
+Output:
+- Console output + saved to `training_models/train_vgg_phase2_log_YYYYMMDD_HHMMSS.txt`
+- Model: `training_models/best_vgg_phase2.pth`
+
+#### Generate Classification Report for Slides
+```bash
+python generate_report.py
+```
+
+Output:
+- Console output + saved to `training_models/classification_report_YYYYMMDD_HHMMSS.txt`
+- Formatted report ready to copy-paste into presentation slides
+
+## Key Features
+
+### Automatic Logging
+All training scripts automatically save their console output to timestamped log files in `training_models/`:
+- `train_vgg_log_YYYYMMDD_HHMMSS.txt` - Phase 1 training log
+- `train_vgg_phase2_log_YYYYMMDD_HHMMSS.txt` - Phase 2 training log
+- `classification_report_YYYYMMDD_HHMMSS.txt` - Classification report
+
+This makes it easy to review training history and share results.
 
 ## Monitoring with TensorBoard
 

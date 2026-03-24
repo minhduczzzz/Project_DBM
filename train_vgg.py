@@ -1,6 +1,7 @@
 import os
 import json
 import shutil
+import sys
 import torch
 import torch.nn as nn
 import pandas as pd
@@ -18,6 +19,24 @@ from dataset import DogBreedTrainValDataset
 from model_vgg import DogBreedVGG16
 from transforms import get_train_transform, get_val_transform
 
+class Logger:
+    """Logger để ghi output ra cả console và file"""
+    def __init__(self, filepath):
+        self.terminal = sys.stdout
+        self.log = open(filepath, 'w', encoding='utf-8')
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        self.log.flush()
+    
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+    
+    def close(self):
+        self.log.close()
+
 def print_section(title):
     print("\n" + "="*80)
     print(f"  {title}")
@@ -29,6 +48,17 @@ def save_metrics(metrics, filepath):
     print(f"✓ Metrics saved to {filepath}")
 
 if __name__ == "__main__":
+    # Setup logger để lưu output ra file
+    if not os.path.isdir("training_models"):
+        os.mkdir("training_models")
+    
+    log_file = f"training_models/train_vgg_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    logger = Logger(log_file)
+    sys.stdout = logger
+    
+    print(f"Training started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Log file: {log_file}\n")
+    
     # ========================================================================
     # STEP 1: DATASET LOADING
     # ========================================================================
@@ -215,3 +245,10 @@ if __name__ == "__main__":
         "precision": float(test_precision), "recall": float(test_recall)
     }
     save_metrics(metrics, "training_models/vgg_test_metrics.json")
+    
+    print(f"\nTraining completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Log saved to: {log_file}")
+    
+    # Đóng logger
+    sys.stdout = logger.terminal
+    logger.close()

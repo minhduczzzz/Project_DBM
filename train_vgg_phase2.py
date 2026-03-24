@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 import torch
 import torch.nn as nn
 import pandas as pd
@@ -14,12 +15,41 @@ from dataset import DogBreedTrainValDataset
 from model_vgg import DogBreedVGG16
 from transforms import get_train_transform, get_val_transform
 
+class Logger:
+    """Logger để ghi output ra cả console và file"""
+    def __init__(self, filepath):
+        self.terminal = sys.stdout
+        self.log = open(filepath, 'w', encoding='utf-8')
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        self.log.flush()
+    
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+    
+    def close(self):
+        self.log.close()
+
 def print_section(title):
     print("\n" + "="*80)
     print(f"  {title}")
     print("="*80)
 
 if __name__ == "__main__":
+    # Setup logger
+    if not os.path.isdir("training_models"):
+        os.mkdir("training_models")
+    
+    log_file = f"training_models/train_vgg_phase2_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    logger = Logger(log_file)
+    sys.stdout = logger
+    
+    print(f"Phase 2 Training started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Log file: {log_file}\n")
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print_section("PHASE 2: DEEP FINE-TUNING (UNFREEZE BLOCK 5)")
     
@@ -152,3 +182,10 @@ if __name__ == "__main__":
     print("="*80)
     print(f"Accuracy:  {test_acc:.4f} ({test_acc*100:.2f}%)")
     print(f"F1-Score:  {test_f1:.4f}")
+    
+    print(f"\nPhase 2 Training completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Log saved to: {log_file}")
+    
+    # Đóng logger
+    sys.stdout = logger.terminal
+    logger.close()

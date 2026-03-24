@@ -1,427 +1,311 @@
 """
-DATA MINING & EXPLORATORY DATA ANALYSIS
-Dog Breed Classification Dataset
-
-QUAN TRỌNG:
-- Data Mining phục vụ cho CẢ DỰ ÁN, không chỉ 1 model
-- Kết quả dùng chung cho VGG, ResNet, AlexNet, EfficientNet
-- Chỉ cần chạy 1 LẦN trước khi train bất kỳ model nào
-- Không bắt buộc nhưng HIGHLY RECOMMENDED
-
-MỤC ĐÍCH:
-1. Hiểu dataset (statistics, distribution)
-2. Phát hiện vấn đề (imbalance, missing data, corrupted files)
-3. Đưa ra insights và recommendations
-4. Giúp quyết định: augmentation, model selection, hyperparameters
-
-OUTPUT:
-- mining_report.json: Báo cáo tổng hợp
-- Visualizations: Charts và plots
-- Recommendations: Đề xuất cụ thể cho training
+Data Mining & Exploratory Data Analysis
+Phân tích dataset để đưa ra insights cho việc training
 """
 
 import os
+import sys
+import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
+from tqdm import tqdm
+from datetime import datetime
 from collections import Counter
-import json
 
+class Logger:
+    """Logger để ghi output ra cả console và file"""
+    def __init__(self, filepath):
+        self.terminal = sys.stdout
+        self.log = open(filepath, 'w', encoding='utf-8')
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+        self.log.flush()
+    
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+    
+    def close(self):
+        self.log.close()
 
 def print_section(title):
-    """Print formatted section header"""
     print("\n" + "="*80)
     print(f"  {title}")
     print("="*80)
 
-
-def analyze_dataset_statistics(df, train_dir):
-    """Analyze basic dataset statistics"""
-    print_section("1. DATASET STATISTICS")
+def analyze_dataset():
+    print_section("DATA MINING & EXPLORATORY DATA ANALYSIS")
     
-    print(f"Total samples: {len(df)}")
-    print(f"Number of unique breeds: {df['breed'].nunique()}")
-    print(f"Number of features: {df.shape[1]}")
+    # Create output directory
+    output_dir = "data_mining_results"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     
-    # Class distribution
+    # Load labels
+    df = pd.read_csv("labels.csv")
+    train_dir = "train"
+    
+    # ========================================================================
+    # 1. BASIC STATISTICS
+    # ========================================================================
+    print_section("1. BASIC DATASET STATISTICS")
+    
+    total_samples = len(df)
+    num_classes = df['breed'].nunique()
+    
+    print(f"Total samples: {total_samples}")
+    print(f"Number of breeds (classes): {num_classes}")
+    print(f"Columns: {df.columns.tolist()}")
+    
+    # ========================================================================
+    # 2. CLASS DISTRIBUTION
+    # ========================================================================
+    print_section("2. CLASS DISTRIBUTION ANALYSIS")
+    
     breed_counts = df['breed'].value_counts()
-    print(f"\nClass distribution:")
-    print(f"  - Min samples per breed: {breed_counts.min()}")
-    print(f"  - Max samples per breed: {breed_counts.max()}")
-    print(f"  - Mean samples per breed: {breed_counts.mean():.2f}")
-    print(f"  - Median samples per breed: {breed_counts.median():.2f}")
-    print(f"  - Std samples per breed: {breed_counts.std():.2f}")
     
-    # Check for missing values
-    print(f"\nMissing values:")
-    print(df.isnull().sum())
-    
-    # Check for duplicates
-    duplicates = df.duplicated().sum()
-    print(f"\nDuplicate rows: {duplicates}")
-    
-    return breed_counts
-
-
-def analyze_class_imbalance(breed_counts):
-    """Analyze class imbalance"""
-    print_section("2. CLASS IMBALANCE ANALYSIS")
-    
-    # Calculate imbalance ratio
-    max_count = breed_counts.max()
-    min_count = breed_counts.min()
-    imbalance_ratio = max_count / min_count
-    
-    print(f"Imbalance ratio: {imbalance_ratio:.2f}")
-    print(f"Most common breed: {breed_counts.index[0]} ({breed_counts.iloc[0]} samples)")
+    print(f"\nMost common breed: {breed_counts.index[0]} ({breed_counts.iloc[0]} samples)")
     print(f"Least common breed: {breed_counts.index[-1]} ({breed_counts.iloc[-1]} samples)")
+    print(f"Average samples per breed: {breed_counts.mean():.2f}")
+    print(f"Median samples per breed: {breed_counts.median():.2f}")
+    print(f"Imbalance ratio (max/min): {breed_counts.iloc[0] / breed_counts.iloc[-1]:.2f}")
     
-    # Categorize classes
-    q1 = breed_counts.quantile(0.25)
-    q3 = breed_counts.quantile(0.75)
+    # Save distribution
+    breed_counts.to_csv(f"{output_dir}/breed_distribution.csv", header=['count'])
+    print(f"\n✓ Saved breed distribution to {output_dir}/breed_distribution.csv")
     
-    underrepresented = breed_counts[breed_counts < q1]
-    well_represented = breed_counts[(breed_counts >= q1) & (breed_counts <= q3)]
-    overrepresented = breed_counts[breed_counts > q3]
+    # Visualize distribution
+    fig, axes = plt.subplots(2, 1, figsize=(15, 10))
     
-    print(f"\nClass categories:")
-    print(f"  - Underrepresented (<Q1={q1:.0f}): {len(underrepresented)} breeds")
-    print(f"  - Well-represented (Q1-Q3): {len(well_represented)} breeds")
-    print(f"  - Overrepresented (>Q3={q3:.0f}): {len(overrepresented)} breeds")
+    # Top 20 breeds
+    breed_counts.head(20).plot(kind='bar', ax=axes[0], color='skyblue')
+    axes[0].set_title('Top 20 Most Common Breeds', fontsize=14, fontweight='bold')
+    axes[0].set_xlabel('Breed')
+    axes[0].set_ylabel('Number of Samples')
+    axes[0].tick_params(axis='x', rotation=45)
     
-    return {
-        'imbalance_ratio': imbalance_ratio,
-        'underrepresented': len(underrepresented),
-        'well_represented': len(well_represented),
-        'overrepresented': len(overrepresented)
-    }
-
-
-def analyze_image_properties(df, train_dir, sample_size=1000):
-    """Analyze image properties (size, aspect ratio, color)"""
+    # Bottom 20 breeds
+    breed_counts.tail(20).plot(kind='bar', ax=axes[1], color='salmon')
+    axes[1].set_title('Top 20 Least Common Breeds', fontsize=14, fontweight='bold')
+    axes[1].set_xlabel('Breed')
+    axes[1].set_ylabel('Number of Samples')
+    axes[1].tick_params(axis='x', rotation=45)
+    
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/class_distribution.png", dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"✓ Saved class distribution plot to {output_dir}/class_distribution.png")
+    
+    # ========================================================================
+    # 3. IMAGE PROPERTIES ANALYSIS
+    # ========================================================================
     print_section("3. IMAGE PROPERTIES ANALYSIS")
     
-    print(f"Analyzing {sample_size} random images...")
+    print("Analyzing image properties (sampling 500 images)...")
     
-    sample_df = df.sample(n=min(sample_size, len(df)), random_state=42)
+    sample_size = min(500, len(df))
+    sample_df = df.sample(n=sample_size, random_state=42)
     
     widths = []
     heights = []
     aspect_ratios = []
     file_sizes = []
     
-    for idx, row in sample_df.iterrows():
-        img_path = os.path.join(train_dir, row['id'] + '.jpg')
+    for idx, row in tqdm(sample_df.iterrows(), total=len(sample_df), desc="Processing images"):
+        img_path = os.path.join(train_dir, f"{row['id']}.jpg")
+        
         if os.path.exists(img_path):
-            img = Image.open(img_path)
-            w, h = img.size
-            widths.append(w)
-            heights.append(h)
-            aspect_ratios.append(w / h)
-            file_sizes.append(os.path.getsize(img_path) / 1024)  # KB
+            try:
+                img = Image.open(img_path)
+                w, h = img.size
+                widths.append(w)
+                heights.append(h)
+                aspect_ratios.append(w / h)
+                file_sizes.append(os.path.getsize(img_path) / 1024)  # KB
+            except Exception as e:
+                print(f"Error processing {img_path}: {e}")
     
-    print(f"\nImage dimensions:")
-    print(f"  Width:  min={min(widths)}, max={max(widths)}, mean={np.mean(widths):.2f}")
-    print(f"  Height: min={min(heights)}, max={max(heights)}, mean={np.mean(heights):.2f}")
+    print(f"\nImage Dimensions:")
+    print(f"  Width  - Min: {min(widths)}, Max: {max(widths)}, Mean: {np.mean(widths):.2f}")
+    print(f"  Height - Min: {min(heights)}, Max: {max(heights)}, Mean: {np.mean(heights):.2f}")
+    print(f"\nAspect Ratios:")
+    print(f"  Min: {min(aspect_ratios):.2f}, Max: {max(aspect_ratios):.2f}, Mean: {np.mean(aspect_ratios):.2f}")
+    print(f"\nFile Sizes (KB):")
+    print(f"  Min: {min(file_sizes):.2f}, Max: {max(file_sizes):.2f}, Mean: {np.mean(file_sizes):.2f}")
     
-    print(f"\nAspect ratios:")
-    print(f"  Min: {min(aspect_ratios):.2f}")
-    print(f"  Max: {max(aspect_ratios):.2f}")
-    print(f"  Mean: {np.mean(aspect_ratios):.2f}")
-    print(f"  Median: {np.median(aspect_ratios):.2f}")
+    # Visualize image properties
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     
-    print(f"\nFile sizes (KB):")
-    print(f"  Min: {min(file_sizes):.2f}")
-    print(f"  Max: {max(file_sizes):.2f}")
-    print(f"  Mean: {np.mean(file_sizes):.2f}")
-    print(f"  Median: {np.median(file_sizes):.2f}")
+    axes[0, 0].hist(widths, bins=30, color='skyblue', edgecolor='black')
+    axes[0, 0].set_title('Image Width Distribution')
+    axes[0, 0].set_xlabel('Width (pixels)')
+    axes[0, 0].set_ylabel('Frequency')
     
-    return {
-        'widths': widths,
-        'heights': heights,
-        'aspect_ratios': aspect_ratios,
-        'file_sizes': file_sizes
-    }
-
-
-def analyze_data_quality(df, train_dir):
-    """Check data quality issues"""
-    print_section("4. DATA QUALITY ANALYSIS")
+    axes[0, 1].hist(heights, bins=30, color='lightcoral', edgecolor='black')
+    axes[0, 1].set_title('Image Height Distribution')
+    axes[0, 1].set_xlabel('Height (pixels)')
+    axes[0, 1].set_ylabel('Frequency')
+    
+    axes[1, 0].hist(aspect_ratios, bins=30, color='lightgreen', edgecolor='black')
+    axes[1, 0].set_title('Aspect Ratio Distribution')
+    axes[1, 0].set_xlabel('Aspect Ratio (width/height)')
+    axes[1, 0].set_ylabel('Frequency')
+    
+    axes[1, 1].hist(file_sizes, bins=30, color='plum', edgecolor='black')
+    axes[1, 1].set_title('File Size Distribution')
+    axes[1, 1].set_xlabel('File Size (KB)')
+    axes[1, 1].set_ylabel('Frequency')
+    
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/image_properties.png", dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"\n✓ Saved image properties plot to {output_dir}/image_properties.png")
+    
+    # Scatter plot: width vs height
+    plt.figure(figsize=(10, 8))
+    plt.scatter(widths, heights, alpha=0.5, c='steelblue')
+    plt.title('Image Dimensions Scatter Plot', fontsize=14, fontweight='bold')
+    plt.xlabel('Width (pixels)')
+    plt.ylabel('Height (pixels)')
+    plt.grid(True, alpha=0.3)
+    plt.savefig(f"{output_dir}/dimensions_scatter.png", dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"✓ Saved dimensions scatter plot to {output_dir}/dimensions_scatter.png")
+    
+    # ========================================================================
+    # 4. DATA QUALITY CHECK
+    # ========================================================================
+    print_section("4. DATA QUALITY CHECK")
+    
+    print("Checking for missing or corrupted images...")
     
     missing_images = []
     corrupted_images = []
     
-    print("Checking image files...")
-    for idx, row in df.iterrows():
-        img_path = os.path.join(train_dir, row['id'] + '.jpg')
+    for idx, row in tqdm(df.iterrows(), total=len(df), desc="Checking images"):
+        img_path = os.path.join(train_dir, f"{row['id']}.jpg")
         
-        # Check if file exists
         if not os.path.exists(img_path):
             missing_images.append(row['id'])
-            continue
-        
-        # Check if image can be opened
-        try:
-            img = Image.open(img_path)
-            img.verify()
-        except:
-            corrupted_images.append(row['id'])
+        else:
+            try:
+                img = Image.open(img_path)
+                img.verify()
+            except Exception:
+                corrupted_images.append(row['id'])
     
-    print(f"\nData quality issues:")
-    print(f"  - Missing images: {len(missing_images)}")
-    print(f"  - Corrupted images: {len(corrupted_images)}")
-    print(f"  - Valid images: {len(df) - len(missing_images) - len(corrupted_images)}")
+    print(f"\nMissing images: {len(missing_images)}")
+    print(f"Corrupted images: {len(corrupted_images)}")
     
-    if missing_images:
-        print(f"\nMissing image IDs (first 5): {missing_images[:5]}")
-    if corrupted_images:
-        print(f"\nCorrupted image IDs (first 5): {corrupted_images[:5]}")
+    if len(missing_images) > 0:
+        print(f"  First few missing: {missing_images[:5]}")
+    if len(corrupted_images) > 0:
+        print(f"  First few corrupted: {corrupted_images[:5]}")
     
-    return {
-        'missing': len(missing_images),
-        'corrupted': len(corrupted_images),
-        'valid': len(df) - len(missing_images) - len(corrupted_images)
-    }
-
-
-def create_visualizations(df, breed_counts, image_props):
-    """Create data mining visualizations"""
-    print_section("5. CREATING VISUALIZATIONS")
-    
-    if not os.path.exists('data_mining_results'):
-        os.makedirs('data_mining_results')
-    
-    # 1. Class distribution
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    
-    # Top 20 breeds
-    top_20 = breed_counts.head(20)
-    axes[0, 0].barh(range(len(top_20)), top_20.values, color='#3498db')
-    axes[0, 0].set_yticks(range(len(top_20)))
-    axes[0, 0].set_yticklabels(top_20.index, fontsize=8)
-    axes[0, 0].set_xlabel('Number of Samples', fontweight='bold')
-    axes[0, 0].set_title('Top 20 Most Common Breeds', fontweight='bold')
-    axes[0, 0].invert_yaxis()
-    axes[0, 0].grid(axis='x', alpha=0.3)
-    
-    # Bottom 20 breeds
-    bottom_20 = breed_counts.tail(20)
-    axes[0, 1].barh(range(len(bottom_20)), bottom_20.values, color='#e74c3c')
-    axes[0, 1].set_yticks(range(len(bottom_20)))
-    axes[0, 1].set_yticklabels(bottom_20.index, fontsize=8)
-    axes[0, 1].set_xlabel('Number of Samples', fontweight='bold')
-    axes[0, 1].set_title('Top 20 Least Common Breeds', fontweight='bold')
-    axes[0, 1].invert_yaxis()
-    axes[0, 1].grid(axis='x', alpha=0.3)
-    
-    # Distribution histogram
-    axes[1, 0].hist(breed_counts.values, bins=30, color='#2ecc71', alpha=0.7, edgecolor='black')
-    axes[1, 0].set_xlabel('Samples per Breed', fontweight='bold')
-    axes[1, 0].set_ylabel('Frequency', fontweight='bold')
-    axes[1, 0].set_title('Distribution of Samples per Breed', fontweight='bold')
-    axes[1, 0].axvline(breed_counts.mean(), color='red', linestyle='--', label=f'Mean: {breed_counts.mean():.1f}')
-    axes[1, 0].axvline(breed_counts.median(), color='blue', linestyle='--', label=f'Median: {breed_counts.median():.1f}')
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    
-    # Box plot
-    axes[1, 1].boxplot(breed_counts.values, vert=True)
-    axes[1, 1].set_ylabel('Samples per Breed', fontweight='bold')
-    axes[1, 1].set_title('Box Plot of Class Distribution', fontweight='bold')
-    axes[1, 1].grid(alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('data_mining_results/class_distribution.png', dpi=300, bbox_inches='tight')
-    print("✓ Saved: class_distribution.png")
-    
-    # 2. Image properties
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    
-    # Width distribution
-    axes[0, 0].hist(image_props['widths'], bins=50, color='#3498db', alpha=0.7, edgecolor='black')
-    axes[0, 0].set_xlabel('Width (pixels)', fontweight='bold')
-    axes[0, 0].set_ylabel('Frequency', fontweight='bold')
-    axes[0, 0].set_title('Image Width Distribution', fontweight='bold')
-    axes[0, 0].grid(alpha=0.3)
-    
-    # Height distribution
-    axes[0, 1].hist(image_props['heights'], bins=50, color='#e74c3c', alpha=0.7, edgecolor='black')
-    axes[0, 1].set_xlabel('Height (pixels)', fontweight='bold')
-    axes[0, 1].set_ylabel('Frequency', fontweight='bold')
-    axes[0, 1].set_title('Image Height Distribution', fontweight='bold')
-    axes[0, 1].grid(alpha=0.3)
-    
-    # Aspect ratio distribution
-    axes[1, 0].hist(image_props['aspect_ratios'], bins=50, color='#2ecc71', alpha=0.7, edgecolor='black')
-    axes[1, 0].set_xlabel('Aspect Ratio (W/H)', fontweight='bold')
-    axes[1, 0].set_ylabel('Frequency', fontweight='bold')
-    axes[1, 0].set_title('Aspect Ratio Distribution', fontweight='bold')
-    axes[1, 0].axvline(1.0, color='red', linestyle='--', label='Square (1:1)')
-    axes[1, 0].legend()
-    axes[1, 0].grid(alpha=0.3)
-    
-    # File size distribution
-    axes[1, 1].hist(image_props['file_sizes'], bins=50, color='#f39c12', alpha=0.7, edgecolor='black')
-    axes[1, 1].set_xlabel('File Size (KB)', fontweight='bold')
-    axes[1, 1].set_ylabel('Frequency', fontweight='bold')
-    axes[1, 1].set_title('File Size Distribution', fontweight='bold')
-    axes[1, 1].grid(alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('data_mining_results/image_properties.png', dpi=300, bbox_inches='tight')
-    print("✓ Saved: image_properties.png")
-    
-    # 3. Scatter plot: Width vs Height
-    fig, ax = plt.subplots(figsize=(10, 8))
-    scatter = ax.scatter(image_props['widths'], image_props['heights'], 
-                        alpha=0.5, c=image_props['aspect_ratios'], 
-                        cmap='viridis', s=20)
-    ax.set_xlabel('Width (pixels)', fontweight='bold', fontsize=12)
-    ax.set_ylabel('Height (pixels)', fontweight='bold', fontsize=12)
-    ax.set_title('Image Dimensions Scatter Plot', fontweight='bold', fontsize=14)
-    ax.plot([0, max(image_props['widths'])], [0, max(image_props['widths'])], 
-            'r--', alpha=0.5, label='Square (1:1)')
-    ax.legend()
-    ax.grid(alpha=0.3)
-    cbar = plt.colorbar(scatter, ax=ax)
-    cbar.set_label('Aspect Ratio', fontweight='bold')
-    
-    plt.tight_layout()
-    plt.savefig('data_mining_results/dimensions_scatter.png', dpi=300, bbox_inches='tight')
-    print("✓ Saved: dimensions_scatter.png")
-    
-    plt.close('all')
-
-
-def generate_insights(df, breed_counts, imbalance_info, quality_info):
-    """Generate data mining insights and recommendations"""
-    print_section("6. DATA MINING INSIGHTS & RECOMMENDATIONS")
+    # ========================================================================
+    # 5. INSIGHTS & RECOMMENDATIONS
+    # ========================================================================
+    print_section("5. INSIGHTS & RECOMMENDATIONS")
     
     insights = []
-    recommendations = []
     
-    # Class imbalance insights
-    if imbalance_info['imbalance_ratio'] > 2:
-        insights.append(f"⚠️ High class imbalance detected (ratio: {imbalance_info['imbalance_ratio']:.2f})")
-        recommendations.append("Consider using class weights or oversampling techniques (SMOTE, data augmentation)")
+    # Class imbalance
+    imbalance_ratio = breed_counts.iloc[0] / breed_counts.iloc[-1]
+    if imbalance_ratio > 2:
+        insights.append(f"⚠️ Class imbalance detected (ratio: {imbalance_ratio:.2f})")
+        insights.append("   → Consider using weighted loss or data augmentation")
     
-    if imbalance_info['underrepresented'] > len(breed_counts) * 0.3:
-        insights.append(f"⚠️ {imbalance_info['underrepresented']} breeds are underrepresented")
-        recommendations.append("Apply stronger augmentation for minority classes")
+    # Image dimensions
+    avg_width = np.mean(widths)
+    avg_height = np.mean(heights)
+    if avg_width > 500 or avg_height > 500:
+        insights.append(f"📏 Large image dimensions (avg: {avg_width:.0f}x{avg_height:.0f})")
+        insights.append("   → Resize to 224x224 or 299x299 for efficiency")
     
-    # Data quality insights
-    if quality_info['missing'] > 0:
-        insights.append(f"⚠️ {quality_info['missing']} missing images detected")
-        recommendations.append("Remove or replace missing images before training")
+    # Aspect ratios
+    aspect_std = np.std(aspect_ratios)
+    if aspect_std > 0.3:
+        insights.append(f"📐 High aspect ratio variance (std: {aspect_std:.2f})")
+        insights.append("   → Use RandomResizedCrop for augmentation")
     
-    if quality_info['corrupted'] > 0:
-        insights.append(f"⚠️ {quality_info['corrupted']} corrupted images detected")
-        recommendations.append("Clean corrupted images from dataset")
+    # Data quality
+    if len(missing_images) > 0 or len(corrupted_images) > 0:
+        insights.append(f"❌ Data quality issues: {len(missing_images)} missing, {len(corrupted_images)} corrupted")
+        insights.append("   → Clean dataset before training")
+    else:
+        insights.append("✅ No data quality issues detected")
     
-    # Dataset size insights
-    if len(df) < 5000:
-        insights.append("⚠️ Small dataset size")
-        recommendations.append("Use transfer learning with pretrained models (VGG, ResNet, EfficientNet)")
-        recommendations.append("Apply extensive data augmentation")
+    # Dataset size
+    if total_samples < 5000:
+        insights.append(f"📊 Small dataset ({total_samples} samples)")
+        insights.append("   → Use strong augmentation and pretrained models")
     
-    if len(breed_counts) > 100:
-        insights.append(f"ℹ️ Large number of classes ({len(breed_counts)})")
-        recommendations.append("Consider using deeper models or ensemble methods")
-        recommendations.append("Use label smoothing to prevent overfitting")
+    for insight in insights:
+        print(insight)
     
-    # Print insights
-    print("\nKey Insights:")
-    for i, insight in enumerate(insights, 1):
-        print(f"{i}. {insight}")
-    
-    print("\nRecommendations:")
-    for i, rec in enumerate(recommendations, 1):
-        print(f"{i}. {rec}")
-    
-    return {
-        'insights': insights,
-        'recommendations': recommendations
-    }
-
-
-def save_mining_report(df, breed_counts, imbalance_info, quality_info, insights_info):
-    """Save complete data mining report"""
-    print_section("7. SAVING DATA MINING REPORT")
+    # ========================================================================
+    # 6. SAVE REPORT
+    # ========================================================================
+    print_section("6. SAVING MINING REPORT")
     
     report = {
-        'dataset_overview': {
-            'total_samples': len(df),
-            'num_classes': len(breed_counts),
-            'samples_per_class': {
-                'min': int(breed_counts.min()),
-                'max': int(breed_counts.max()),
-                'mean': float(breed_counts.mean()),
-                'median': float(breed_counts.median()),
-                'std': float(breed_counts.std())
-            }
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "basic_stats": {
+            "total_samples": int(total_samples),
+            "num_classes": int(num_classes),
+            "samples_per_class_mean": float(breed_counts.mean()),
+            "samples_per_class_median": float(breed_counts.median()),
+            "imbalance_ratio": float(imbalance_ratio)
         },
-        'class_imbalance': imbalance_info,
-        'data_quality': quality_info,
-        'insights': insights_info['insights'],
-        'recommendations': insights_info['recommendations']
+        "image_properties": {
+            "width_mean": float(np.mean(widths)),
+            "height_mean": float(np.mean(heights)),
+            "aspect_ratio_mean": float(np.mean(aspect_ratios)),
+            "file_size_mean_kb": float(np.mean(file_sizes))
+        },
+        "data_quality": {
+            "missing_images": len(missing_images),
+            "corrupted_images": len(corrupted_images)
+        },
+        "insights": insights
     }
     
-    with open('data_mining_results/mining_report.json', 'w') as f:
+    with open(f"{output_dir}/mining_report.json", 'w') as f:
         json.dump(report, f, indent=4)
     
-    print("✓ Report saved: data_mining_results/mining_report.json")
+    print(f"✓ Saved complete report to {output_dir}/mining_report.json")
     
-    # Save breed distribution CSV
-    breed_df = pd.DataFrame({
-        'breed': breed_counts.index,
-        'count': breed_counts.values
-    })
-    breed_df.to_csv('data_mining_results/breed_distribution.csv', index=False)
-    print("✓ Distribution saved: data_mining_results/breed_distribution.csv")
-
+    print_section("DATA MINING COMPLETED")
+    print("\nGenerated files:")
+    print(f"  - {output_dir}/mining_report.json")
+    print(f"  - {output_dir}/breed_distribution.csv")
+    print(f"  - {output_dir}/class_distribution.png")
+    print(f"  - {output_dir}/image_properties.png")
+    print(f"  - {output_dir}/dimensions_scatter.png")
 
 if __name__ == "__main__":
-    print("="*80)
-    print("  DATA MINING & EXPLORATORY DATA ANALYSIS")
-    print("  Dog Breed Classification Dataset")
-    print("="*80)
+    # Setup logger
+    output_dir = "data_mining_results"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     
-    labels_path = "labels.csv"
-    train_dir = "train"
+    log_file = f"{output_dir}/data_mining_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    logger = Logger(log_file)
+    sys.stdout = logger
     
-    # Load dataset
-    df = pd.read_csv(labels_path)
+    print(f"Data Mining started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Log file: {log_file}\n")
     
-    # 1. Dataset statistics
-    breed_counts = analyze_dataset_statistics(df, train_dir)
+    analyze_dataset()
     
-    # 2. Class imbalance analysis
-    imbalance_info = analyze_class_imbalance(breed_counts)
+    print(f"\nData Mining completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Log saved to: {log_file}")
     
-    # 3. Image properties analysis
-    image_props = analyze_image_properties(df, train_dir, sample_size=1000)
-    
-    # 4. Data quality analysis
-    quality_info = analyze_data_quality(df, train_dir)
-    
-    # 5. Create visualizations
-    create_visualizations(df, breed_counts, image_props)
-    
-    # 6. Generate insights
-    insights_info = generate_insights(df, breed_counts, imbalance_info, quality_info)
-    
-    # 7. Save report
-    save_mining_report(df, breed_counts, imbalance_info, quality_info, insights_info)
-    
-    print("\n" + "="*80)
-    print("  DATA MINING ANALYSIS COMPLETED!")
-    print("="*80)
-    print("Results saved in: data_mining_results/")
-    print("  - mining_report.json")
-    print("  - breed_distribution.csv")
-    print("  - class_distribution.png")
-    print("  - image_properties.png")
-    print("  - dimensions_scatter.png")
-    print("="*80)
+    # Đóng logger
+    sys.stdout = logger.terminal
+    logger.close()
