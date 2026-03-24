@@ -1,21 +1,21 @@
-# Project_DBM - Dog Breed Classification
+# Project_DBM - Dog Breed Classification - VGG model
 
 ## Pipeline Overview
 
 ```
 Dataset
   ↓
-📊 DATA MINING & EDA (Optional but Recommended - Phục vụ CẢ DỰ ÁN)
+📊 DATA MINING & EDA 
   - Phân tích dataset để đưa ra insights
   - Giúp quyết định augmentation, model selection
   - Không bắt buộc nhưng nên làm trước khi train
   ↓
-⚙️ Preprocessing (BẮT BUỘC)
+⚙️ Preprocessing
   - Resize images to fixed size
   - Normalize với ImageNet stats
   - Convert to tensor
   ↓
-🔄 Augmentation (Recommended)
+🔄 Augmentation
   - RandomFlip, RandomRotation, ColorJitter
   - Giúp tăng data và giảm overfitting
   ↓
@@ -34,13 +34,13 @@ Best Model Selection
 
 ## Vai trò của từng bước
 
-### 1. Data Mining (Optional - Phục vụ CẢ DỰ ÁN)
+### 1. Data Mining
 - **Mục đích**: Hiểu dataset, phát hiện vấn đề, đưa ra recommendations
 - **Kết quả**: Insights để chọn augmentation, model, hyperparameters
 - **Train được không có?**: ✅ Có, nhưng không biết dataset có vấn đề gì
 - **Chạy 1 lần**: Kết quả dùng cho TẤT CẢ models
 
-### 2. Preprocessing (BẮT BUỘC)
+### 2. Preprocessing 
 - **Mục đích**: Chuẩn hóa input cho model
 - **Bao gồm**: Resize, Normalize, ToTensor
 - **Train được không có?**: ❌ KHÔNG - Model không nhận input
@@ -57,9 +57,7 @@ Project_DBM/
 ├── data_mining_analysis.py # Data Mining & EDA
 ├── dataset.py              # PyTorch Dataset classes (load ảnh, apply transforms)
 ├── transforms.py           # Transform factory (preprocessing + augmentation)
-├── model.py                # ResNet18 model
 ├── model_vgg.py            # VGG16 model
-├── train_cnn.py            # Train ResNet18
 ├── train_vgg.py            # Train VGG16 (with detailed pipeline output)
 ├── compare_models.py       # Compare all models
 ├── labels.csv              # Dataset labels
